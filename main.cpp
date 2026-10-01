@@ -11,10 +11,12 @@ static void search_file_single_folder(const std::string& filename, const std::fi
     pid_t pid = getpid();
 
     try {
+        // ensure search directory exists and is accessible
         if (!std::filesystem::exists(searchpath) || !std::filesystem::is_directory(searchpath)) {
             return;
         }
         for (const auto& entry : std::filesystem::directory_iterator(searchpath)) {
+            // write path to stdout when found
             if (entry.is_regular_file() && entry.path().filename() == filename) {
                 std::filesystem::path path = std::filesystem::absolute(entry.path());
                 std::string output = std::to_string(pid) + ": " + filename + ": " + path.string() + "\n";
@@ -39,20 +41,24 @@ int main (int argc, char* argv[]) {
     }
     std::cout << "Searchpath: " << args.searchpath << "\n";
     std::cout << "Searching for " << args.filenames.size() << " file(s)...\n";
+    // flush output before forking
     std::cout << std::flush;
 
     std::filesystem::path searchpath = args.searchpath;
 
+    // create child process for each filename to be searched
     for (const auto& filename : args.filenames) {
         pid_t pid = fork();
         if (pid < 0) {
             return 1;
         }
         else if (pid == 0) {
+            // child
             search_file_single_folder(filename, searchpath);
             _exit(0);
         }
     }
+    // parent: wait for all children to finish
     int status = 0;
     while (wait(&status) > 0 || (errno == EINTR)) {}
     return 0;
