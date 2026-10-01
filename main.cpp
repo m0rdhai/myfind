@@ -45,12 +45,15 @@ int main (int argc, char* argv[]) {
     std::cout << std::flush;
 
     std::filesystem::path searchpath = args.searchpath;
+    bool fork_failed = false;
 
     // create child process for each filename to be searched
     for (const auto& filename : args.filenames) {
         pid_t pid = fork();
         if (pid < 0) {
-            return 1;
+            perror("fork failed");
+            fork_failed = true;
+            break;
         }
         else if (pid == 0) {
             // child
@@ -61,5 +64,8 @@ int main (int argc, char* argv[]) {
     // parent: wait for all children to finish
     int status = 0;
     while (wait(&status) > 0 || (errno == EINTR)) {}
+    if (fork_failed) {
+        return 1;
+    }
     return 0;
 }
