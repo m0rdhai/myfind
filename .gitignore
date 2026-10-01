@@ -1,0 +1,12 @@
+# Build directory
+build/
+bin/
+
+# Compiled files
+*.o
+*.out
+myfind
+
+# IDE files
+.vscode/
+.idea/
