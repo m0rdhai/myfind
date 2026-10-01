@@ -11,6 +11,6 @@ struct Arguments {
     bool case_insensitive = false;
 };
 
-Arguments parse_args(int argc, char* argv[]);
+Arguments parse_arguments(int argc, char* argv[]);
 
 #endif //MYFIND_ARGS_H
