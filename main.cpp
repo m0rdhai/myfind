@@ -33,6 +33,15 @@ static void search_file_single_folder(const std::string& filename, const std::fi
     }
 }
 
+/*
+ * Output-Synchronization Concept:
+ * Standard C++ streams like std::cout can overlap when multiple child processes
+ * write to stdout simultaneously due to internal buffering.
+ * To guarantee process-safe full-line output synchronization, we prepare
+ * the entire formatted string in a single buffer and write it atomically using
+ * the POSIX system call write(STDOUT_FILENO, ...).
+ */
+
 int main (int argc, char* argv[]) {
     Arguments args = parse_arguments(argc, argv);
     if (args.filenames.empty()) {
