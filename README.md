@@ -35,8 +35,8 @@ make clean  # Cleans build artifacts
 ```
 
 ### Arguments & Options
-<searchpath>: Relative or absolute target path.
-<filename>: Plain string target filename(s).
+searchpath: Relative or absolute target path.
+filename: Plain string target filename(s).
 -R: Enable recursive directory search (optional).
 -i: Enable case-insensitive matching (optional).
 
