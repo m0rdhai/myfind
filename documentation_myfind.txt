@@ -1,0 +1,27 @@
+Parallelisierungskonzept und Aufgabensynchronistation in MYFIND:
+
+Prozesserzeugung mittels fork()
+
+Werden dem Programm auf der Kommandozeile mehrere Dateinamen übergeben (z. B.
+./myfind <pfad> datei1 datei2 datei3 ), iteriert der Elternprozess durch die Liste der
+Zieldateien und spaltet für jeden Dateinamen einen eigenen Kindprozess mittels fork() ab.
+
+Das wäre der Ablauf:
+1.	Der Eltemprozess parst die Argumente in eine Arguments-Struktur (getopt).
+2.	Für jeden Dateinamen in args.filenames erzeugt fork() eine exakte Kopie des Prozessraums.
+3.	Kindprozess ( PID==0): Führt ausschließlich für die ihm zugewiesene Datei aus. Nach Abschluss der Suche (flach oder rekursiv via std : : filesystem) beendet er sich sofort mit dem Rückgabewert 0.
+4.	Elternprozess ( PID > 0 ): Fährt in der Schleife fort, um die verbleibenden Kindprozesse zu erzeugen, bevor er in die Warteraum-Phase übergeht.
+
+Porzesssynchronisation
+
+Wenn mehrere Prozesse gleichzeitig mit std : : cout ins Terminal schreiben, kommt es schnell
+zum sogenannten Interleaving: Die Textzeilen der verschiedenen Prozesse vermischen sich
+völlig unleserlich. Das liegt daran, dass std : : cout ein gepufferter Stream ist. Er sammelt die
+Daten erst im Arbeitsspeicher und schickt sie irgendwann in Häppchen an das Terminal. Bei
+mehreren parallelen Kindprozessen passiert das völlig durcheinander.
+
+Um dieses Problem zu lösen, verzichten wir auf std: : cout und nutzen stattdessen den
+direkten POSIX-Systemaufruf write() . Der Vorteil dabei ist, dass write() den kompletten
+Fertig-Text ohne Zwischenpufferung direkt an den Betriebssystem-Kernel übergibt. Da unsere
+Ausgabezeile kurz ist, verarbeitet der Kernel den Aufruf als eine sogenannte atomare Operation, also als ein einziges, unteilbares Paket. Das Betriebssystem sorgt automatisch dafür, dass erst die komplette Zeile des einen Prozesses im Terminal landet, bevor der nächste Prozess an der
+Reihe ist.
