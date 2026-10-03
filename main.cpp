@@ -4,10 +4,31 @@
 #include <filesystem>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <algorithm>
+#include <cctype>
 
 #include "args.h"
 
-static void search_file_single_folder(const std::string& filename, const std::filesystem::path& searchpath) {
+//Transforms every character in the string to lowercase
+static std::string to_lowercase(const std::string& str) {
+    std::string lower= str;
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return lower;
+}
+//Performs exact or case-insensitive comparison based on the -i flag
+static bool is_matching_filename(const std::string& current, const std::string& target, bool case_insensitive) {
+    if (case_insensitive) {
+        return to_lowercase(target) == to_lowercase(current);
+    } else {
+        return target == current;
+    }
+}
+
+
+//Traverses directory (flat or recursively with -R) and outputs matches.
+//Uses POSIX write() instead of std::cout to guarantee atomic output
+static void search_file_single_folder(const std::string& filename, const std::filesystem::path& searchpath, const Arguments& args) {
     pid_t pid = getpid();
 
     try {
@@ -15,16 +36,27 @@ static void search_file_single_folder(const std::string& filename, const std::fi
         if (!std::filesystem::exists(searchpath) || !std::filesystem::is_directory(searchpath)) {
             return;
         }
+        if(args.recursive) {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(searchpath)) {
+                if (entry.is_regular_file() && is_matching_filename(entry.path().filename().string(), filename, args.case_insensitive)) {
+                    std::filesystem::path path = std::filesystem::absolute(entry.path());
+                    std::string output = std::to_string(pid) + ": " + filename + ": " + path.string() + "\n";
+                    ::write(STDOUT_FILENO, output.c_str(), output.size());
+                 
+                }
+            }
+        } else {
         for (const auto& entry : std::filesystem::directory_iterator(searchpath)) {
             // write path to stdout when found
-            if (entry.is_regular_file() && entry.path().filename() == filename) {
+            if (entry.is_regular_file() && is_matching_filename(entry.path().filename().string(), filename, args.case_insensitive)) {
                 std::filesystem::path path = std::filesystem::absolute(entry.path());
                 std::string output = std::to_string(pid) + ": " + filename + ": " + path.string() + "\n";
                 ::write(STDOUT_FILENO, output.c_str(), output.size());
-                return;
+                
             }
         }
     }
+}
     catch (std::filesystem::filesystem_error& e) {
         std::cerr << e.what() << std::endl;
     }
@@ -42,6 +74,9 @@ static void search_file_single_folder(const std::string& filename, const std::fi
  * the POSIX system call write(STDOUT_FILENO, ...).
  */
 
+ 
+//Spawns child processes via fork() for each file and waits for completion
+//fork() implements parallel search requirements
 int main (int argc, char* argv[]) {
     Arguments args = parse_arguments(argc, argv);
     if (args.filenames.empty()) {
@@ -66,7 +101,7 @@ int main (int argc, char* argv[]) {
         }
         else if (pid == 0) {
             // child
-            search_file_single_folder(filename, searchpath);
+            search_file_single_folder(filename, searchpath, args);
             _exit(0);
         }
     }
