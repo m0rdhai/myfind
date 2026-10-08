@@ -47,7 +47,7 @@ static void safe_write_stdout(const std::string& str) {
 static void process_entry(const std::filesystem::directory_entry& entry, const std::string& filename, const Arguments& args, pid_t pid) {
     std::error_code ec;
     if (entry.is_regular_file(ec) && is_matching_filename(entry.path().filename().string(), filename, args.case_insensitive)) {
-        std::filesystem::path path = std::filesystem::canonical(entry.path(), ec);
+        std::filesystem::path path = std::filesystem::weakly_canonical(entry.path(), ec);
         if (!ec) {
             std::string output = std::to_string(pid) + ": " + filename + ": " + path.string() + "\n";
             safe_write_stdout(output);
