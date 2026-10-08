@@ -105,7 +105,7 @@ static void search_file_single_folder(const std::string& filename, const std::fi
 
 int main(int argc, char* argv[]) {
     Arguments args = parse_arguments(argc, argv);
-    if (!args.valid) {
+    if (args.filenames.empty()) {
         std::cerr << "Usage: " << argv[0] << " [-R] [-i] searchpath filename1 [filename2 ...]\n";
         return 1;
     }

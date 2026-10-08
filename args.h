@@ -9,7 +9,6 @@ struct Arguments {
     std::vector<std::string> filenames;
     bool recursive = false;
     bool case_insensitive = false;
-    bool valid = true;
 };
 
 Arguments parse_arguments(int argc, char* argv[]);
